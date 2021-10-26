@@ -3,7 +3,6 @@ let neritoUtils = require('./neritoUtils.js');
 
 const { v4: uuidv4 } = require('uuid')
 
-let months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 let date = new Date();
 let month = date.getMonth(); // returns 0 - 11
 
@@ -11,13 +10,13 @@ async function uploadEmployeeCsv(orgId, fileContent) {
     let response = {};
 
     // Generate file name from current Month
-    let fileName = orgId + "_" + months[month];
+    let fileName = orgId + "_" + neritoUtils.months[month];
     // Determine file extension
     let fullFileName = `${fileName}.csv`;
     let isFileUploaded = false;
     let isDataInserted = false;
     let uniqueId = uuidv4();
-    let Id = "ORG#" + orgId;
+    let Id = orgId;
     let SK = "File#" + uniqueId;
     try {
         try {

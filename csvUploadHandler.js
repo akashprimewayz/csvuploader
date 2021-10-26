@@ -3,6 +3,7 @@
 const AWS = require('aws-sdk');
 const s3 = new AWS.S3();
 const { v4: uuidv4 } = require('uuid')
+let neritoUtils = require('./neritoUtils.js');
 
 //const accessKeyId = process.env.accessKeyId
 //const secretAccessKey = process.env.secretAccessKey
@@ -76,14 +77,18 @@ module.exports = {
         return isDeleted;
     },
     insertCsvStatusInDb: async function (orgId, fullFileName, Id, SK) {
+
+        let date = new Date();
+        let month = date.getMonth();
         let isUpdated = false;
         let params = {
             TableName: ddbTable,
             Item: {
                 "Id": Id,
                 "SK": SK,
+                "month": neritoUtils.months[month],
                 "csv_name": fullFileName,
-                "status": "Pending"
+                "status": neritoUtils.csvStatus.PENDING
             }
         };
         try {
