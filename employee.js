@@ -51,8 +51,8 @@ async function uploadEmployeeCsv(orgId, fileContent) {
             return neritoUtils.errorResponseJson("DataInsertFailed", 400);
         }
         response = {
-            Id: Id,
-            SK: SK,
+            orgId: Id,
+            fileId: SK,
             status: 'Successfully uploaded',
             fileName: fullFileName
         };
