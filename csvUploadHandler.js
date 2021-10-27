@@ -86,9 +86,9 @@ module.exports = {
             Item: {
                 "Id": Id,
                 "SK": SK,
-                "month": neritoUtils.months[month],
-                "csv_name": fullFileName,
-                "status": neritoUtils.csvStatus.PENDING
+                "Month": neritoUtils.months[month],
+                "csvName": fullFileName,
+                "csvStatus": neritoUtils.csvStatus.PENDING
             }
         };
         try {
