@@ -31,7 +31,7 @@ async function uploadEmployeeCsv(orgId, fileContent) {
         }
 
         try {
-            isDataInserted = await csvUploadHandler.insertCsvStatusInDb(orgId, fullFileName, Id, SK);
+            isDataInserted = await csvUploadHandler.insertCsvStatusInDb(fullFileName, Id, SK);
             if (!isDataInserted) {
                 console.log("Error while uploading file: " + fileName);
                 return neritoUtils.errorResponseJson("DataInsertFailed", 400);

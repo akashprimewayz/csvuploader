@@ -76,7 +76,7 @@ module.exports = {
         }
         return isDeleted;
     },
-    insertCsvStatusInDb: async function (orgId, fullFileName, Id, SK) {
+    insertCsvStatusInDb: async function (fullFileName, Id, SK) {
 
         let date = new Date();
         let month = date.getMonth();
@@ -87,8 +87,8 @@ module.exports = {
                 "Id": Id,
                 "SK": SK,
                 "Month": neritoUtils.months[month],
-                "csvName": fullFileName,
-                "csvStatus": neritoUtils.csvStatus.PENDING
+                "CsvName": fullFileName,
+                "CsvStatus": neritoUtils.csvStatus.PENDING
             }
         };
         try {
