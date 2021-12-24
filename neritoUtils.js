@@ -14,6 +14,14 @@ module.exports = {
         SAVEORG: 'SAVEORG',
         UPDATEORG: 'UPDATEORG'
     },
+    storagetype: {
+        ORG_LOGO: 'ORG_LOGO',
+        EMP_CSV: 'EMP_CSV'
+    },
+    transferTo: {
+        BNK: 'BNK',
+        WLT: 'WLT'
+    },
     successResponseJson: async function (message, code) {
         let error = {};
         let Error = {};

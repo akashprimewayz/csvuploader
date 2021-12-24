@@ -18,7 +18,7 @@ exports.handler = async function (event, ctx, callback) {
             const response = await csvController(csvParser);
             return response;
         } else if (action.localeCompare(neritoUtils.action.SAVEORG) == 0) {
-            let error = requestValidator.validateRequest(csvParser, action);
+            let error = await requestValidator.validateRequest(csvParser, action);
             if (neritoUtils.isEmpty(error)) {
                 const response = await organizationController.saveOrganization(csvParser, action);
                 return response;
