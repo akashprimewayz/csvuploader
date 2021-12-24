@@ -28,7 +28,7 @@ async function uploadEmployeeCsv(csvParser) {
         // Generate file name from current Month
         let fullFileName = Id + "_" + neritoUtils.months[month] + ".csv";
         try {
-            isFileUploaded = await service.putObjectOnS3(fullFileName, fileContent, bucketName);
+            isFileUploaded = await service.putObjectOnS3(fullFileName, fileContent, bucketName,neritoUtils.storagetype.EMP_CSV);
             if (!isFileUploaded) {
                 console.error("Error while uploading file: " + fullFileName);
                 return neritoUtils.errorResponseJson("UploadFailed", 400);
