@@ -3,27 +3,35 @@ let neritoUtils = require('./neritoUtils.js');
 
 const { v4: uuidv4 } = require('uuid');
 const logoBucketName = "logo";
-const uniqueId = uuidv4();
 let org = {};
 let userIds = [];
-let fullFileName;
 
 module.exports = {
     saveOrganization: async function (csvParser, action) {
+        const uniqueId = uuidv4();
+        org = {};
+        userIds = [];
+        let fullFileName;
         try {
-            const { content, filename } = csvParser.files[0];
             let isFileUploaded = false;
             let isDataInserted = false;
-            org = getOrganization(csvParser, uniqueId, action, filename);
-            try {
-                isFileUploaded = await service.putObjectOnS3(fullFileName, content, logoBucketName, neritoUtils.storagetype.ORG_LOGO);
-                if (!isFileUploaded) {
-                    console.error("Error while uploading file: " + fullFileName);
+            if (!neritoUtils.isEmpty(csvParser.files[0])) {
+                const { content, filename } = csvParser.files[0];
+                org = getOrganization(csvParser, uniqueId, action, filename);
+                fullFileName = org.Config.Logo;
+                try {
+                    isFileUploaded = await service.putObjectOnS3(fullFileName, content, logoBucketName, neritoUtils.storagetype.ORG_LOGO);
+                    if (!isFileUploaded) {
+                        console.error("Error while uploading file: " + fullFileName);
+                        return neritoUtils.errorResponseJson("UploadFailed", 400);
+                    }
+                } catch (err) {
+                    console.error("Unable to Upload organization logo on S3" + fullFileName, err);
                     return neritoUtils.errorResponseJson("UploadFailed", 400);
                 }
-            } catch (err) {
-                console.error("Unable to Upload organization logo on S3" + fullFileName, err);
-                return neritoUtils.errorResponseJson("UploadFailed", 400);
+            } else {
+                org = getOrganization(csvParser, uniqueId, action, null);
+
             }
             try {
                 isDataInserted = await service.saveOrganization(org);
@@ -77,12 +85,15 @@ module.exports = {
     },
 
     updateOrganization: async function (csvParser, action) {
-        const { content, filename } = csvParser.files[0];
+        const uniqueId = uuidv4();
+        org = {};
+        userIds = [];
         let isFileUploaded = false;
         let isDataInserted = false;
-        org = getOrganization(csvParser, uniqueId, action, filename);
+        let organization;
+        let fullFileName;
         try {
-            let organization = await service.getOrgDataById(csvParser.Id);
+            organization = await service.getOrgDataById(csvParser.Id);
             if (organization != null && organization != undefined && organization.Items.length > 0 && organization.Items[0] != null && organization.Items[0] != undefined && organization.Items[0].FileValidation != null && organization.Items[0].FileValidation != undefined) {
                 organization = organization.Items[0];
                 if (organization.Id != csvParser.Id) {
@@ -95,8 +106,11 @@ module.exports = {
             console.error("Unable to get organization data by orgId: " + "ORG#" + org.Id, err);
             return neritoUtils.errorResponseJson("UploadFailed", 400);
         }
-        if (filename != null) {
+        if (!neritoUtils.isEmpty(csvParser.files[0])) {
             try {
+                const { content, filename } = csvParser.files[0];
+                org = getOrganization(csvParser, uniqueId, action, filename);
+                fullFileName = org.Config.Logo;
                 isFileUploaded = await service.putObjectOnS3(fullFileName, content, logoBucketName, neritoUtils.storagetype.ORG_LOGO);
                 if (!isFileUploaded) {
                     console.error("Error while uploading file: " + fullFileName);
@@ -106,6 +120,12 @@ module.exports = {
                 console.error("Unable to Upload organization logo on S3" + fullFileName, err);
                 return neritoUtils.errorResponseJson("UploadFailed", 400);
             }
+        } else {
+            let filename;
+            if (!neritoUtils.isEmpty(organization.Config) && !neritoUtils.isEmpty(organization.ConfigLogo)) {
+                filename = organization.Config.Logo;
+            }
+            org = getOrganization(csvParser, uniqueId, action, filename);
         }
         try {
             for (const element of userIds) {
@@ -155,19 +175,21 @@ module.exports = {
 };
 
 function getOrganization(csvParser, uniqueId, action, filename) {
+    let configJSON = JSON.parse(csvParser.Config);
     if (action === neritoUtils.action.SAVEORG) {
         org.Id = "ORG#" + uniqueId;
         org.SK = "METADATA#" + uniqueId;
+        configJSON.Logo = ("LOGO#" + org.Id + neritoUtils.getExtension(filename)).trim();
     } else {
         org.Id = csvParser.Id;
         org.SK = csvParser.SK;
+        if (!neritoUtils.isEmpty(filename)) {
+            configJSON.Logo = ("LOGO#" + org.Id + neritoUtils.getExtension(filename)).trim();
+        }
     }
-    fullFileName = ("LOGO#" + org.Id + neritoUtils.getExtension(filename)).trim();
     org.AccountUsers = JSON.parse(csvParser.AccountUsers);
-
     for (const element of org.AccountUsers) {
         userIds.push(element.Id);
-
     }
 
     org.Email = csvParser.Email;
@@ -179,14 +201,10 @@ function getOrganization(csvParser, uniqueId, action, filename) {
     org.PayrollDisbursement = csvParser.PayrollDisbursement;
     org.PayrollUsers = JSON.parse(csvParser.PayrollUsers);
 
-
     for (const element of org.PayrollUsers) {
         userIds.push(element.Id);
-
     }
     org.Status = csvParser.Status;
-    let configJSON = JSON.parse(csvParser.Config);
-    configJSON.Logo = fullFileName;
     org.Config = configJSON;
     if (!neritoUtils.isEmpty(csvParser.TransferTo)) {
         org.TransferTo = csvParser.TransferTo;

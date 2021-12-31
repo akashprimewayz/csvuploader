@@ -6,29 +6,28 @@ let payrollUsers = [];
 
 
 module.exports = {
-    validateRequest: async function (request, action) {
+    validateRequest: function (request, action, users) {
         accountUsers = [];
         payrollUsers = [];
         let error = {};
         try {
-            let users = await service.getUserList();
-            if (neritoUtils.isEmpty(users) || neritoUtils.isEmpty(users.Items)) {
-                return neritoUtils.errorResponseJson("Unable to fetch users fro User table", 400);
-            }
-            users = users.Items;
             for (const element of users) {
-                if (element.OrganizationId.localeCompare("NULL") == -1) {
+                console.log("element.OrganizationId", element.OrganizationId);
+                if (element.OrganizationId !== "") {
                     continue;
                 }
-                if (element.Group == "ACCOUNT_USER") {
+                if (element.Group.localeCompare(neritoUtils.userType.ACCOUNT_USER) == 0) {
                     accountUsers.push(element.Id);
                 }
-                if (element.Group == "PAYROLL_USER") {
+                if (element.Group.localeCompare(neritoUtils.userType.PAYROLL_USER) == 0) {
                     payrollUsers.push(element.Id);
                 }
             }
+
             if (neritoUtils.isEmpty(request.files[0])) {
-                error.File = "Invalid";
+                if (action.localeCompare(neritoUtils.action.SAVEORG) == 0) {
+                    error.File = "Invalid";
+                }
             } else {
                 const { content, filename } = request.files[0];
                 if (!neritoUtils.isEmpty(filename) && content.length > 1048576) {
@@ -39,16 +38,16 @@ module.exports = {
                 }
             }
 
-            if (action == "UPDATEORG" && neritoUtils.isEmpty(request.Id)) {
+            if (action.localeCompare(neritoUtils.action.UPDATEORG) == 0 && neritoUtils.isEmpty(request.Id)) {
                 error.Id = "Invalid";
             }
-            if (action == "UPDATEORG" && neritoUtils.isEmpty(request.SK)) {
+            if (action.localeCompare(neritoUtils.action.UPDATEORG) == 0 && neritoUtils.isEmpty(request.SK)) {
                 error.SK = "Invalid";
             }
             if (neritoUtils.isEmpty(request.AccountUsers) || !neritoUtils.isValidJson(request.AccountUsers)) {
                 error.AccountUsers = "Invalid";
             } else if (!neritoUtils.isEmpty(getUserIds(accountUsers, request.AccountUsers))) {
-                error.Error = "Account users not found";
+                error.Error = "User(s) not found";
                 error.AccountUsers = getUserIds(accountUsers, request.AccountUsers);
             }
             if (neritoUtils.isEmpty(request.FiscalInfo) || request.FiscalInfo <= 0 || request.FiscalInfo > 100) {
@@ -75,7 +74,7 @@ module.exports = {
             if (neritoUtils.isEmpty(request.PayrollUsers) || !neritoUtils.isValidJson(request.PayrollUsers)) {
                 error.PayrollUsers = "Invalid";
             } else if (!neritoUtils.isEmpty(getUserIds(payrollUsers, request.PayrollUsers))) {
-                error.Error = "payrollUsers not found";
+                error.Error = "User(s) not found";
                 error.PayrollUsers = getUserIds(payrollUsers, request.PayrollUsers);
             }
             if (neritoUtils.isEmpty(request.Status) || neritoUtils.isBoolean(request.Status)) {
