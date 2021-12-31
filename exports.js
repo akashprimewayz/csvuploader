@@ -3,13 +3,14 @@ const neritoUtils = require('./neritoUtils.js');
 const requestValidator = require('./requestValidator.js');
 const organizationController = require('./organizationController.js');
 const parser = require("lambda-multipart-parser");
+let service = require('./service.js');
 
 
 exports.handler = async function (event, ctx, callback) {
     try {
-        let action;
+        let action, users;
         let queryJSON = JSON.parse(JSON.stringify(event.queryStringParameters));
-        if (neritoUtils.isEmpty(queryJSON) ||neritoUtils.isEmpty(queryJSON['action'])) {
+        if (neritoUtils.isEmpty(queryJSON) || neritoUtils.isEmpty(queryJSON['action'])) {
             return neritoUtils.errorResponseJson("Action is not defined", 400);
         }
         action = queryJSON['action'];
@@ -18,16 +19,18 @@ exports.handler = async function (event, ctx, callback) {
             const response = await csvController(csvParser);
             return response;
         } else if (action.localeCompare(neritoUtils.action.SAVEORG) == 0) {
-            let error = await requestValidator.validateRequest(csvParser, action);
+            users = await getUsers();
+            let error = await requestValidator.validateRequest(csvParser, action, users);
             if (neritoUtils.isEmpty(error)) {
                 const response = await organizationController.saveOrganization(csvParser, action);
                 return response;
             } else {
                 return neritoUtils.errorResponseJson(error, 400);
             }
-        } else if ((action.localeCompare(neritoUtils.action.UPDATEORG) == 0) || !neritoUtils.isEmpty(csvParser.Id) && !neritoUtils.isEmpty(csvParser.SK)) {
+        } else if ((action.localeCompare(neritoUtils.action.UPDATEORG) == 0)) {
             action = neritoUtils.action.UPDATEORG;
-            let error = requestValidator.validateRequest(csvParser, action);
+            users = await getUsers();
+            let error = requestValidator.validateRequest(csvParser, action, users);
             if (neritoUtils.isEmpty(error)) {
                 const response = await organizationController.updateOrganization(csvParser, action);
                 return response;
@@ -42,4 +45,18 @@ exports.handler = async function (event, ctx, callback) {
         return neritoUtils.errorResponseJson("Something went wrong", 400);
     }
 };
+
+async function getUsers() {
+    try {
+        let users = await service.getUserList();
+        if (neritoUtils.isEmpty(users) || neritoUtils.isEmpty(users.Items)) {
+            return neritoUtils.errorResponseJson("Unable to fetch users from User table", 400);
+        }
+        users = users.Items;
+        return users;
+    } catch (err) {
+        console.error("Something went wrong while fetching users from User table", err);
+        return neritoUtils.errorResponseJson("Something went wrong while fetching users from User table", 400);
+    }
+}
 

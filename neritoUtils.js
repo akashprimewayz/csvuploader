@@ -22,6 +22,10 @@ module.exports = {
         BNK: 'BNK',
         WLT: 'WLT'
     },
+    userType: {
+        ACCOUNT_USER: 'ACCOUNT_USER',
+        PAYROLL_USER: 'PAYROLL_USER'
+    },    
     successResponseJson: async function (message, code) {
         let error = {};
         let Error = {};
