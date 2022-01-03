@@ -11,16 +11,20 @@ module.exports = {
         payrollUsers = [];
         let error = {};
         try {
+            if (action.localeCompare(neritoUtils.action.UPDATEORG) == 0 && neritoUtils.isEmpty(request.Id)) {
+                error.Id = "Invalid";
+            }
+            if (action.localeCompare(neritoUtils.action.UPDATEORG) == 0 && neritoUtils.isEmpty(request.SK)) {
+                error.SK = "Invalid";
+            }
             for (const element of users) {
-                console.log("element.OrganizationId", element.OrganizationId);
-                if (element.OrganizationId !== "") {
-                    continue;
-                }
-                if (element.Group.localeCompare(neritoUtils.userType.ACCOUNT_USER) == 0) {
-                    accountUsers.push(element.Id);
-                }
-                if (element.Group.localeCompare(neritoUtils.userType.PAYROLL_USER) == 0) {
-                    payrollUsers.push(element.Id);
+                if (element.OrganizationId === "" || (action.localeCompare(neritoUtils.action.UPDATEORG) == 0 && element.OrganizationId === request.Id)) {
+                    if (element.Group.localeCompare(neritoUtils.userType.ACCOUNT_USER) == 0) {
+                        accountUsers.push(element.Id);
+                    }
+                    if (element.Group.localeCompare(neritoUtils.userType.PAYROLL_USER) == 0) {
+                        payrollUsers.push(element.Id);
+                    }
                 }
             }
 
@@ -38,12 +42,6 @@ module.exports = {
                 }
             }
 
-            if (action.localeCompare(neritoUtils.action.UPDATEORG) == 0 && neritoUtils.isEmpty(request.Id)) {
-                error.Id = "Invalid";
-            }
-            if (action.localeCompare(neritoUtils.action.UPDATEORG) == 0 && neritoUtils.isEmpty(request.SK)) {
-                error.SK = "Invalid";
-            }
             if (neritoUtils.isEmpty(request.AccountUsers) || !neritoUtils.isValidJson(request.AccountUsers)) {
                 error.AccountUsers = "Invalid";
             } else if (!neritoUtils.isEmpty(getUserIds(accountUsers, request.AccountUsers))) {
