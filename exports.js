@@ -14,13 +14,22 @@ exports.handler = async function (event, ctx, callback) {
             return neritoUtils.errorResponseJson("Action is not defined", 400);
         }
         action = queryJSON['action'];
-        const csvParser = await parser.parse(event);
+        if (neritoUtils.isEmpty(event) || neritoUtils.isEmpty(event.body)) {
+            return neritoUtils.errorResponseJson("Form data not found ", 400);
+        }
+        let csvParser;
+        try {
+            csvParser = await parser.parse(event);
+        } catch (err) {
+            console.error("Something went wrong with request body: ", err)
+            throw "Something went wrong";
+        }
         if (action.localeCompare(neritoUtils.action.CSVUPLOAD) == 0) {
             const response = await csvController(csvParser);
             return response;
         } else if (action.localeCompare(neritoUtils.action.SAVEORG) == 0) {
             users = await getUsers();
-            let error = await requestValidator.validateRequest(csvParser, action, users);
+            let error = requestValidator.validateRequest(csvParser, action, users);
             if (neritoUtils.isEmpty(error)) {
                 const response = await organizationController.saveOrganization(csvParser, action);
                 return response;
@@ -42,7 +51,7 @@ exports.handler = async function (event, ctx, callback) {
         }
     } catch (err) {
         console.error("Something went wrong", err);
-        return neritoUtils.errorResponseJson("Something went wrong", 400);
+        return neritoUtils.errorResponseJson("Something went wrong", 500);
     }
 };
 
@@ -50,13 +59,13 @@ async function getUsers() {
     try {
         let users = await service.getUserList();
         if (neritoUtils.isEmpty(users) || neritoUtils.isEmpty(users.Items)) {
-            return neritoUtils.errorResponseJson("Unable to fetch users from User table", 400);
+            throw "Something went wrong";
         }
         users = users.Items;
         return users;
     } catch (err) {
         console.error("Something went wrong while fetching users from User table", err);
-        return neritoUtils.errorResponseJson("Something went wrong while fetching users from User table", 400);
+        throw "Something went wrong";
     }
 }
 

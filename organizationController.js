@@ -22,49 +22,60 @@ module.exports = {
                 try {
                     isFileUploaded = await service.putObjectOnS3(fullFileName, content, logoBucketName, neritoUtils.storagetype.ORG_LOGO);
                     if (!isFileUploaded) {
-                        console.error("Error while uploading file: " + fullFileName);
-                        return neritoUtils.errorResponseJson("UploadFailed", 400);
+                        console.error("Error while uploading org logo: " + fullFileName);
+                        throw "Something went wrong";
                     }
                 } catch (err) {
                     console.error("Unable to Upload organization logo on S3" + fullFileName, err);
-                    return neritoUtils.errorResponseJson("UploadFailed", 400);
+                    throw "Something went wrong";
                 }
             } else {
                 org = getOrganization(csvParser, uniqueId, action, null);
-
+            }
+            let usersForDelete = [];
+            try {
+                for (const element of userIds) {
+                    let userJSON = await service.getUserById(element);
+                    if (neritoUtils.isEmpty(userJSON) || neritoUtils.isEmpty(userJSON.Items) || neritoUtils.isEmpty(userJSON.Items[0])) {
+                        throw "Something went wrong";
+                    }
+                    usersForDelete.push(userJSON.Items[0]);
+                    let user = getUser(userJSON.Items[0], org);
+                    isDataInserted = await service.updateUser(user);
+                }
+            } catch (err) {
+                console.error("Something went wrong while fetching Users" + org.Id, err);
+                throw "Something went wrong";
             }
             try {
                 isDataInserted = await service.saveOrganization(org);
                 if (!isDataInserted) {
                     console.error("Error while saving organization");
-                    return neritoUtils.errorResponseJson("SaveOrganizationFailed", 400);
+                    throw "Something went wrong";
                 }
             } catch (err) {
                 console.error("Error while saving organization", err);
+                if (!neritoUtils.isEmpty(csvParser.files[0])) {
+                    try {
+                        let isFileDeleted = await service.deleteObjectOnS3(fullFileName);
+                        if (!isFileDeleted) {
+                            console.error("Error while deleting file: " + fullFileName);
+                        }
+                    } catch (err) {
+                        console.error("Error while deleting organization logo " + fullFileName, err);
+                        throw "Something went wrong";
+                    }
+                }
                 try {
-                    let isFileDeleted = await service.deleteObjectOnS3(fullFileName);
-                    if (!isFileDeleted) {
-                        console.error("Error while deleting file: " + fullFileName);
-                        return neritoUtils.errorResponseJson("DeleteFailed", 400);
+                    for (const element of usersForDelete) {
+                        let user = getUser(element);
+                        isDataInserted = await service.updateUser(user);
                     }
                 } catch (err) {
-                    console.error("Error while deleting organization logo " + fullFileName, err);
-                    return neritoUtils.errorResponseJson("DeleteFailed", 400);
+                    console.error("Unable to get organization data by orgId: " + org.Id, err);
+                    throw "Something went wrong";
                 }
-                return neritoUtils.errorResponseJson("DataInsertFailed", 400);
-            }
-            try {
-                for (const element of userIds) {
-                    let userJSON = await service.getUserById(element);
-                    if (neritoUtils.isEmpty(userJSON) || neritoUtils.isEmpty(userJSON.Items) || neritoUtils.isEmpty(userJSON.Items[0])) {
-                        return neritoUtils.errorResponseJson("Something went wrong with User", 400);
-                    }
-                    let user = getUser(userJSON.Items[0], org);
-                    isDataInserted = await service.updateUser(user);
-                }
-            } catch (err) {
-                console.error("Unable to get organization data by orgId: " + org.Id, err);
-                return neritoUtils.errorResponseJson("UploadFailed", 400);
+                throw "Something went wrong";
             }
             try {
                 let organization = await service.getOrgDataById(org.Id);
@@ -72,15 +83,15 @@ module.exports = {
                     organization = organization.Items[0];
                     return neritoUtils.successResponseJson(organization, 200);
                 } else {
-                    return neritoUtils.errorResponseJson("Something went wrong", 400);
+                    throw "Something went wrong";
                 }
             } catch (err) {
                 console.error("Unable to get organization data by orgId: " + org.Id, err);
-                return neritoUtils.errorResponseJson("UploadFailed", 400);
+                throw "Something went wrong";
             }
         } catch (err) {
             console.error("Something went wrong", err);
-            return neritoUtils.errorResponseJson("SaveFailed", 400);
+            return neritoUtils.errorResponseJson(err, 500);
         }
     },
 
@@ -93,83 +104,99 @@ module.exports = {
         let organization;
         let fullFileName;
         try {
-            organization = await service.getOrgDataById(csvParser.Id);
-            if (organization != null && organization != undefined && organization.Items.length > 0 && organization.Items[0] != null && organization.Items[0] != undefined && organization.Items[0].FileValidation != null && organization.Items[0].FileValidation != undefined) {
-                organization = organization.Items[0];
-                if (organization.Id != csvParser.Id) {
-                    return neritoUtils.errorResponseJson("Organization details not found By Id:" + org.Id, 400);
+            try {
+                organization = await service.getOrgDataById(csvParser.Id);
+                if (organization != null && organization != undefined && organization.Items.length > 0 && organization.Items[0] != null && organization.Items[0] != undefined && organization.Items[0].FileValidation != null && organization.Items[0].FileValidation != undefined) {
+                    organization = organization.Items[0];
+                    if (organization.Id != csvParser.Id) {
+                        throw "Something went wrong";
+                    }
+                } else {
+                    throw "Something went wrong";
+                }
+            } catch (err) {
+                console.error("Unable to get organization data by orgId: " + "ORG#" + org.Id, err);
+                throw "Something went wrong";
+            }
+            if (!neritoUtils.isEmpty(csvParser.files[0])) {
+                try {
+                    const { content, filename } = csvParser.files[0];
+                    org = getOrganization(csvParser, uniqueId, action, filename);
+                    fullFileName = org.Config.Logo;
+                    isFileUploaded = await service.putObjectOnS3(fullFileName, content, logoBucketName, neritoUtils.storagetype.ORG_LOGO);
+                    if (!isFileUploaded) {
+                        console.error("Error while uploading file: " + fullFileName);
+                        throw "Something went wrong";
+                    }
+                } catch (err) {
+                    console.error("Unable to Upload organization logo on S3" + fullFileName, err);
+                    throw "Something went wrong";
                 }
             } else {
-                return neritoUtils.errorResponseJson("Organization details not found By Id:" + org.Id, 400);
-            }
-        } catch (err) {
-            console.error("Unable to get organization data by orgId: " + "ORG#" + org.Id, err);
-            return neritoUtils.errorResponseJson("UploadFailed", 400);
-        }
-        if (!neritoUtils.isEmpty(csvParser.files[0])) {
-            try {
-                const { content, filename } = csvParser.files[0];
+                let filename;
+                if (!neritoUtils.isEmpty(organization.Config) && !neritoUtils.isEmpty(organization.ConfigLogo)) {
+                    filename = organization.Config.Logo;
+                }
                 org = getOrganization(csvParser, uniqueId, action, filename);
-                fullFileName = org.Config.Logo;
-                isFileUploaded = await service.putObjectOnS3(fullFileName, content, logoBucketName, neritoUtils.storagetype.ORG_LOGO);
-                if (!isFileUploaded) {
-                    console.error("Error while uploading file: " + fullFileName);
-                    return neritoUtils.errorResponseJson("UploadFailed", 400);
-                }
-            } catch (err) {
-                console.error("Unable to Upload organization logo on S3" + fullFileName, err);
-                return neritoUtils.errorResponseJson("UploadFailed", 400);
             }
-        } else {
-            let filename;
-            if (!neritoUtils.isEmpty(organization.Config) && !neritoUtils.isEmpty(organization.ConfigLogo)) {
-                filename = organization.Config.Logo;
-            }
-            org = getOrganization(csvParser, uniqueId, action, filename);
-        }
-        try {
-            for (const element of userIds) {
-                let userJSON = await service.getUserById(element);
-                if (neritoUtils.isEmpty(userJSON) || neritoUtils.isEmpty(userJSON.Items) || neritoUtils.isEmpty(userJSON.Items[0])) {
-                    return neritoUtils.errorResponseJson("Something went wrong with User", 400);
-                }
-                let user = getUser(userJSON.Items[0], org);
-                isDataInserted = await service.updateUser(user);
-            }
-        } catch (err) {
-            console.error("Unable to get organization data by orgId: " + org.Id, err);
-            return neritoUtils.errorResponseJson("UploadFailed", 400);
-        }
-        try {
-            isDataInserted = await service.saveOrganization(org);
-            if (!isDataInserted) {
-                console.error("Error while saving organization");
-                return neritoUtils.errorResponseJson("SaveOrganizationFailed", 400);
-            }
-        } catch (err) {
-            console.error("Error while saving organization", err);
             try {
-                let isFileDeleted = await service.deleteObjectOnS3(fullFileName);
-                if (!isFileDeleted) {
-                    console.error("Error while deleting file: " + fullFileName);
-                    return neritoUtils.errorResponseJson("DeleteFailed", 400);
+                let oldUserId = getOldUserId(organization);
+                for (const element of oldUserId) {
+                    let userJSON = await service.getUserById(element);
+                    if (!neritoUtils.isEmpty(userJSON) && !neritoUtils.isEmpty(userJSON.Items) && !neritoUtils.isEmpty(userJSON.Items[0])) {
+                        let user = getUser(userJSON.Items[0]);
+                        isDataInserted = await service.updateUser(user);
+                    }
+                }
+                for (const element of userIds) {
+                    let userJSON = await service.getUserById(element);
+                    if (neritoUtils.isEmpty(userJSON) || neritoUtils.isEmpty(userJSON.Items) || neritoUtils.isEmpty(userJSON.Items[0])) {
+                        throw "Something went wrong";
+                    }
+                    let user = getUser(userJSON.Items[0], org);
+                    isDataInserted = await service.updateUser(user);
                 }
             } catch (err) {
-                console.error("Error while deleting organization logo " + fullFileName, err);
-                return neritoUtils.errorResponseJson("DeleteFailed", 400);
+                console.error("Unable to get organization data by orgId: " + org.Id, err);
+                throw "Something went wrong";
             }
-            return neritoUtils.errorResponseJson("DataInsertFailed", 400);
-        }
 
-        try {
-            let organization = await service.getOrgDataById(org.Id);
-            if (organization != null && organization != undefined && organization.Items.length > 0 && organization.Items[0] != null && organization.Items[0] != undefined && organization.Items[0].FileValidation != null && organization.Items[0].FileValidation != undefined) {
-                organization = organization.Items[0];
+            try {
+                isDataInserted = await service.saveOrganization(org);
+                if (!isDataInserted) {
+                    console.error("Error while saving organization");
+                    throw "Something went wrong";
+                }
+            } catch (err) {
+                console.error("Error while saving organization", err);
+                if (!neritoUtils.isEmpty(csvParser.files[0])) {
+                    try {
+                        let isFileDeleted = await service.deleteObjectOnS3(fullFileName);
+                        if (!isFileDeleted) {
+                            console.error("Error while deleting file: " + fullFileName);
+                            throw "Something went wrong";
+                        }
+                    } catch (err) {
+                        console.error("Error while deleting organization logo " + fullFileName, err);
+                        throw "Something went wrong";
+                    }
+                }
+                throw "Something went wrong";
             }
-            return neritoUtils.successResponseJson(organization, 200);
+
+            try {
+                let organization = await service.getOrgDataById(org.Id);
+                if (organization != null && organization != undefined && organization.Items.length > 0 && organization.Items[0] != null && organization.Items[0] != undefined && organization.Items[0].FileValidation != null && organization.Items[0].FileValidation != undefined) {
+                    organization = organization.Items[0];
+                }
+                return neritoUtils.successResponseJson(organization, 200);
+            } catch (err) {
+                console.error("Unable to get organization data by orgId: " + org.Id, err);
+                throw "Something went wrong";
+            }
         } catch (err) {
-            console.error("Unable to get organization data by orgId: " + org.Id, err);
-            return neritoUtils.errorResponseJson("UploadFailed", 400);
+            console.error("Something went wrong", err);
+            return neritoUtils.errorResponseJson(err, 500);
         }
     }
 };
@@ -179,13 +206,13 @@ function getOrganization(csvParser, uniqueId, action, filename) {
     if (action === neritoUtils.action.SAVEORG) {
         org.Id = "ORG#" + uniqueId;
         org.SK = "METADATA#" + uniqueId;
-        configJSON.Logo = ("LOGO#" + org.Id + neritoUtils.getExtension(filename)).trim();
     } else {
         org.Id = csvParser.Id;
         org.SK = csvParser.SK;
-        if (!neritoUtils.isEmpty(filename)) {
-            configJSON.Logo = ("LOGO#" + org.Id + neritoUtils.getExtension(filename)).trim();
-        }
+    }
+
+    if (!neritoUtils.isEmpty(filename)) {
+        configJSON.Logo = ("LOGO#" + org.Id + neritoUtils.getExtension(filename)).trim();
     }
     org.AccountUsers = JSON.parse(csvParser.AccountUsers);
     for (const element of org.AccountUsers) {
@@ -204,7 +231,7 @@ function getOrganization(csvParser, uniqueId, action, filename) {
     for (const element of org.PayrollUsers) {
         userIds.push(element.Id);
     }
-    org.Status = csvParser.Status;
+    org.Status = JSON.parse(csvParser.Status);
     org.Config = configJSON;
     if (!neritoUtils.isEmpty(csvParser.TransferTo)) {
         org.TransferTo = csvParser.TransferTo;
@@ -218,10 +245,26 @@ function getOrganization(csvParser, uniqueId, action, filename) {
 function getUser(usr, org) {
     let user = {};
     user.Id = usr.Id,
-        user.Group = usr.Group,
-        user.Email = usr.Email,
-        user.Name = usr.Name,
-        user.OrganizationId = org.Id,
-        user.Status = true;
+        user.Group = usr.Group;
+    user.Email = usr.Email;
+    user.Name = usr.Name;
+    if (!neritoUtils.isEmpty(org)) {
+        user.OrganizationId = org.Id;
+    } else {
+        user.OrganizationId = "";
+    }
+    user.Status = true;
     return user;
+}
+
+
+function getOldUserId(org) {
+    let oldUserId = [];
+    for (const element of org.AccountUsers) {
+        oldUserId.push(element.Id);
+    }
+    for (const element of org.PayrollUsers) {
+        oldUserId.push(element.Id);
+    }
+    return oldUserId;
 }

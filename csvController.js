@@ -31,18 +31,18 @@ async function uploadEmployeeCsv(csvParser) {
             isFileUploaded = await service.putObjectOnS3(fullFileName, fileContent, bucketName,neritoUtils.storagetype.EMP_CSV);
             if (!isFileUploaded) {
                 console.error("Error while uploading file: " + fullFileName);
-                return neritoUtils.errorResponseJson("UploadFailed", 400);
+                throw "Something went wrong";
             }
         } catch (err) {
             console.error("CSV file not found with this Name: " + fullFileName, err);
-            return neritoUtils.errorResponseJson("UploadFailed", 400);
+            throw "Something went wrong";
         }
 
         try {
             isDataInserted = await service.insertCsvStatusInDb(fullFileName, Id, SK);
             if (!isDataInserted) {
                 console.error("Error while uploading file: " + fullFileName);
-                return neritoUtils.errorResponseJson("DataInsertFailed", 400);
+                throw "Something went wrong";
             }
         } catch (err) {
             console.error("Error while inserting csv status: " + fullFileName, err);
@@ -50,13 +50,13 @@ async function uploadEmployeeCsv(csvParser) {
                 let isFileDeleted = await service.deleteObjectOnS3(fullFileName,bucketName);
                 if (!isFileDeleted) {
                     console.error("Error while deleting file: " + fullFileName);
-                    return neritoUtils.errorResponseJson("DeleteFailed", 400);
+                    throw "Something went wrong";
                 }
             } catch (err) {
                 console.error("Error while deleting csv file: " + fullFileName, err);
-                return neritoUtils.errorResponseJson("DeleteFailed", 400);
+                throw "Something went wrong";
             }
-            return neritoUtils.errorResponseJson("DataInsertFailed", 400);
+            throw "Something went wrong";
         }
         response = {
             orgId: Id,
@@ -68,7 +68,7 @@ async function uploadEmployeeCsv(csvParser) {
         return neritoUtils.successResponseJson(response, 200);
     } catch (err) {
         console.error("Something went wrong", err);
-        return neritoUtils.errorResponseJson("CsvUploadFailed", 402);
+        return neritoUtils.errorResponseJson(err, 500);
     }
 }
 module.exports = uploadEmployeeCsv;
