@@ -9,13 +9,13 @@ module.exports = {
     validateRequest: function (request, action, users) {
         accountUsers = [];
         payrollUsers = [];
-        let error = {};
+        let error = [];
         try {
             if (action.localeCompare(neritoUtils.action.UPDATEORG) == 0 && neritoUtils.isEmpty(request.Id)) {
-                error.Id = "Invalid";
+                error.push("ID");
             }
             if (action.localeCompare(neritoUtils.action.UPDATEORG) == 0 && neritoUtils.isEmpty(request.SK)) {
-                error.SK = "Invalid";
+                error.push("SK");
             }
             for (const element of users) {
                 if (element.OrganizationId === "" || (action.localeCompare(neritoUtils.action.UPDATEORG) == 0 && element.OrganizationId === request.Id)) {
@@ -28,65 +28,53 @@ module.exports = {
                 }
             }
 
-            if (neritoUtils.isEmpty(request.files[0])) {
-                if (action.localeCompare(neritoUtils.action.SAVEORG) == 0) {
-                    error.File = "Invalid";
-                }
-            } else {
+            if (!neritoUtils.isEmpty(request.files[0])) {
                 const { content, filename } = request.files[0];
                 if (!neritoUtils.isEmpty(filename) && content.length > 1048576) {
-                    error.fileSize = "Invalid";
+                    error.push("FILE_SIZE");
                 }
                 if (!neritoUtils.isEmpty(filename) && !neritoUtils.isCorrectImgFileType(filename)) {
-                    error.fileType = "Invalid";
+                    error.push("FILE_TYPE");
                 }
             }
-
-            if (neritoUtils.isEmpty(request.AccountUsers) || !neritoUtils.isValidJson(request.AccountUsers)) {
-                error.AccountUsers = "Invalid";
-            } else if (!neritoUtils.isEmpty(getUserIds(accountUsers, request.AccountUsers))) {
-                error.Error = "User(s) not found";
-                error.AccountUsers = getUserIds(accountUsers, request.AccountUsers);
+            if (neritoUtils.isEmpty(request.AccountUsers) || !neritoUtils.isValidJson(request.AccountUsers) || !neritoUtils.isEmpty(getUserIds(accountUsers, request.AccountUsers))) {
+                error.push("ACCOUNT_USER");
             }
-            if (neritoUtils.isEmpty(request.FiscalInfo) || request.FiscalInfo <= 0 || request.FiscalInfo > 100) {
-                error.AccountUsers = "Invalid";
+            if (neritoUtils.isEmpty(request.FiscalInfo) || request.FiscalInfo < 0 || request.FiscalInfo > 100) {
+                error.push("FISCAL_INFO");
             }
             if (neritoUtils.isEmpty(request.Config) || !neritoUtils.isValidJson(request.Config)) {
-                error.Config = "Invalid";
+                error.push("CONFIG");
             }
             if (neritoUtils.isEmpty(request.Email) || !neritoUtils.isEmailValid(request.Email)) {
-                error.Email = "Invalid";
+                error.push("EMAIL");
             }
             if (neritoUtils.isEmpty(request.EmployeeEnrollmentDate) || (request.EmployeeEnrollmentDate < 1 || request.EmployeeEnrollmentDate > 31)) {
-                error.EmployeeEnrollmentDate = "Invalid";
+                error.push("EMPLOYEE_ENROLLMENT_DATE");
             }
             if (neritoUtils.isEmpty(request.FileValidation) || !neritoUtils.isValidJson(request.FileValidation)) {
-                error.FileValidation = "Invalid";
-            }
-            if (neritoUtils.isEmpty(request.OrgName) || request.OrgName.length > 60) {
-                error.OrgName = "Invalid";
-            }
-            if (neritoUtils.isEmpty(request.PayrollDisbursement) || (request.PayrollDisbursement < 1 || request.PayrollDisbursement > 31)) {
-                error.PayrollDisbursement = "Invalid";
-            }
-            if (neritoUtils.isEmpty(request.PayrollUsers) || !neritoUtils.isValidJson(request.PayrollUsers)) {
-                error.PayrollUsers = "Invalid";
-            } else if (!neritoUtils.isEmpty(getUserIds(payrollUsers, request.PayrollUsers))) {
-                error.Error = "User(s) not found";
-                error.PayrollUsers = getUserIds(payrollUsers, request.PayrollUsers);
-            }
-            if (neritoUtils.isEmpty(request.Status) || neritoUtils.isBoolean(request.Status)) {
-                error.Status = "Invalid";
-            }
-            if (neritoUtils.isEmpty(request.TransferTo) || !(request.TransferTo in neritoUtils.transferTo)) {
-                error.TransferTo = "Invalid";
+                error.push("FILE_VALIDATION");
             }
 
+            if (neritoUtils.isEmpty(request.OrgName) || request.OrgName.length > 60) {
+                error.push("ORGANIZATION_NAME");
+            }
+            if (neritoUtils.isEmpty(request.PayrollDisbursement) || (request.PayrollDisbursement < 1 || request.PayrollDisbursement > 31)) {
+                error.push("PAYROLL_DISBURSEMENT");
+            }
+            if (neritoUtils.isEmpty(request.PayrollUsers) || !neritoUtils.isValidJson(request.PayrollUsers) || !neritoUtils.isEmpty(getUserIds(payrollUsers, request.PayrollUsers))) {
+                error.push("PAYROLL_USERS");
+            }
+            if (neritoUtils.isEmpty(request.Status) || neritoUtils.isBoolean(request.Status)) {
+                error.push("STATUS");
+            }
+            if (neritoUtils.isEmpty(request.TransferTo) || !(request.TransferTo in neritoUtils.transferTo)) {
+                error.push("TRANSFER_TO");
+            }
             return error;
         } catch (err) {
             console.error(err);
-            error.requestValidation = "Something went wrong";
-            return error;
+            throw "Something went wrong";
         }
     }
 };

@@ -155,7 +155,8 @@ module.exports = {
                 "PayrollDisbursement": org.PayrollDisbursement,
                 "PayrollUsers": org.PayrollUsers,
                 "TransferTo": org.TransferTo,
-                "Status": org.Status
+                "Status": org.Status,
+                "Type": "METADATA"
             }
         };
         try {
