@@ -85,14 +85,15 @@ module.exports = {
     insertCsvStatusInDb: async function (fullFileName, Id, SK) {
 
         let date = new Date();
-        let month = date.getMonth();
+        let month = date.getMonth()+ 1;
         let isUpdated = false;
         let params = {
             TableName: organization_table,
             Item: {
                 "Id": Id,
                 "SK": SK,
-                "Month": neritoUtils.months[month],
+                "Month": month,
+                "Year": date.getFullYear(),
                 "CsvName": fullFileName,
                 "CsvStatus": neritoUtils.csvStatus.PENDING
             }
@@ -155,6 +156,7 @@ module.exports = {
                 "PayrollDisbursement": org.PayrollDisbursement,
                 "PayrollUsers": org.PayrollUsers,
                 "TransferTo": org.TransferTo,
+                "OriginAccount": neritoUtils.zeroAppenderOnLeft(org.OriginAccount),
                 "Status": org.Status,
                 "Type": "METADATA"
             }

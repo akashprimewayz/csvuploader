@@ -10,6 +10,7 @@
   "license": "ISC",
   "dependencies": {
     "lambda-multipart-parser": "^1.0.1",
+    "short-unique-id": "^4.4.4",
     "uuid": "^8.3.2"
   }
 }

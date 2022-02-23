@@ -71,6 +71,9 @@ module.exports = {
             if (neritoUtils.isEmpty(request.TransferTo) || !(request.TransferTo in neritoUtils.transferTo)) {
                 error.push("TRANSFER_TO");
             }
+            if (neritoUtils.isEmpty(request.OriginAccount) || isNaN(request.OriginAccount)) {
+                error.push("OriginAccount");
+            }            
             return error;
         } catch (err) {
             console.error(err);
