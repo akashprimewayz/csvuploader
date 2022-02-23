@@ -25,7 +25,7 @@ module.exports = {
     userType: {
         ACCOUNT_USER: 'ACCOUNT_USER',
         PAYROLL_USER: 'PAYROLL_USER'
-    },    
+    },
     successResponseJson: async function (message, code) {
         let error = {};
         let Error = {};
@@ -38,7 +38,7 @@ module.exports = {
             "Access-Control-Allow-Origin": '*',
             "Access-Control-Allow-Methods": 'POST,GET,OPTIONS,PUT'
         },
-        error.body = JSON.stringify(Error);
+            error.body = JSON.stringify(Error);
         console.error(error);
         return error;
     },
@@ -107,7 +107,14 @@ module.exports = {
             console.error(err);
             return false;
         }
-    }
+    },
+    zeroAppenderOnLeft: function (str) {
+        let length = str.length;
+        if (length === 20) {
+            return str;
+        }
+        return str.toString().padStart(20, '0');
+    },
 };
 
 function isEmpty(obj) {

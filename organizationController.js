@@ -1,5 +1,7 @@
 let service = require('./service.js');
 let neritoUtils = require('./neritoUtils.js');
+const ShortUniqueId = require('short-unique-id');
+const uid = new ShortUniqueId({ length: 9 });
 
 const { v4: uuidv4 } = require('uuid');
 const logoBucketName = "logo";
@@ -8,7 +10,7 @@ let userIds = [];
 
 module.exports = {
     saveOrganization: async function (csvParser, action) {
-        const uniqueId = uuidv4();
+        const uniqueId = uid();
         org = {};
         userIds = [];
         let fullFileName;
@@ -220,6 +222,7 @@ function getOrganization(csvParser, uniqueId, action, filename) {
     }
 
     org.Email = csvParser.Email;
+    org.OriginAccount = csvParser.OriginAccount;
     org.EmployeeEnrollmentDate = csvParser.EmployeeEnrollmentDate;
     org.FileValidation = JSON.parse(csvParser.FileValidation);
     org.FiscalInfo = csvParser.FiscalInfo;
