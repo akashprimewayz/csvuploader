@@ -148,6 +148,7 @@ module.exports = {
                 "AccountUsers": org.AccountUsers,
                 "Config": org.Config,
                 "Email": org.Email,
+                "RFC": org.RFC,
                 "EmployeeEnrollmentDate": org.EmployeeEnrollmentDate,
                 "FileValidation": org.FileValidation,
                 "FiscalInfo": org.FiscalInfo,

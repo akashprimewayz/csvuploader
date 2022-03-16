@@ -228,6 +228,7 @@ function getOrganization(csvParser, uniqueId, action, filename) {
     org.FiscalInfo = csvParser.FiscalInfo;
     org.OrgDetails = csvParser.OrgDetails;
     org.OrgName = csvParser.OrgName;
+    org.RFC = csvParser.RFC;
     org.PayrollDisbursement = csvParser.PayrollDisbursement;
     org.PayrollUsers = JSON.parse(csvParser.PayrollUsers);
 
