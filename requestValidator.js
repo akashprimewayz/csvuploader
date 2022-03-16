@@ -59,6 +59,9 @@ module.exports = {
             if (neritoUtils.isEmpty(request.OrgName) || request.OrgName.length > 60) {
                 error.push("ORGANIZATION_NAME");
             }
+            if (neritoUtils.isEmpty(request.RFC) || request.RFC.length > 13) {
+                error.push("RFC");
+            }
             if (neritoUtils.isEmpty(request.PayrollDisbursement) || (request.PayrollDisbursement < 1 || request.PayrollDisbursement > 31)) {
                 error.push("PAYROLL_DISBURSEMENT");
             }
